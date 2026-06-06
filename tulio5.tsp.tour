@@ -1,0 +1,12 @@
+NAME: tulio5
+COMMENT: SEU NOME - Vizinho Mais Proximo + 2-Opt
+TYPE: TOUR
+DIMENSION: 5
+TOTAL WEIGHT: 103
+TOUR_SECTION
+1
+2
+3
+4
+5
+EOF

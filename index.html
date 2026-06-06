@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapeamento do Projeto TSP</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
+            --code-bg: #000000;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar - Menu de Navegação */
+        .sidebar {
+            width: 320px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        .menu-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background-color: #334155;
+        }
+
+        .menu-item.active {
+            background-color: #334155;
+            border-left: 4px solid var(--accent);
+        }
+
+        .menu-item h3 {
+            margin: 0 0 5px 0;
+            font-size: 1rem;
+        }
+
+        .menu-item p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Área de Conteúdo Principal */
+        .content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .requirement-box {
+            background-color: rgba(56, 189, 248, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 0 4px 4px 0;
+            margin-bottom: 20px;
+            font-style: italic;
+            color: #bae6fd;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #a5b4fc;
+            border: 1px solid #1e1e1e;
+        }
+
+        .explanation {
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        </div>
+
+    <div class="content" id="content-area">
+        </div>
+
+    <script>
+        // Banco de Dados das Explicações e Mapeamento
+        const data = [
+            {
+                id: 'parser',
+                title: '1. O Parser (Leitura de Dados)',
+                subtitle: 'stdin e Formato TSPLIB',
+                requirement: 'O programa deverá receber os dados da instância por meio da entrada padrão (stdin)... Devem ser consideradas apenas instâncias do TSP simétrico... com coordenadas em 2 dimensões.',
+                code: `for linha in sys.stdin:\n    linha = linha.strip()\n    if linha == "NODE_COORD_SECTION":\n        lendo_coordenadas = True\n        continue\n    if lendo_coordenadas:\n        partes = linha.split()\n        cidades.append((int(partes[0]), float(partes[1]), float(partes[2])))`,
+                explanation: 'O professor proibiu a leitura de arquivos com nomes fixos. Nosso código usa o <code>sys.stdin</code>, que consome o fluxo de dados diretamente do terminal de execução (ex: <code>< instancia.tsp</code>). O loop ignora cabeçalhos e ativa a captura de dados apenas após encontrar a tag obrigatória "NODE_COORD_SECTION".'
+            },
+            {
+                id: 'distancia',
+                title: '2. Motor de Distância EUC_2D',
+                subtitle: 'Cálculo e Arredondamento',
+                requirement: 'Para instâncias EUC_2D, a distância entre duas cidades deve ser calculada como: d_ij = floor(0,5 + sqrt((x_i - x_j)² + (y_i - y_j)²))',
+                code: `def calcular_distancia(cidade_a, cidade_b):\n    xd = cidade_a[1] - cidade_b[1]\n    yd = cidade_a[2] - cidade_b[2]\n    return math.floor(0.5 + math.sqrt(xd*xd + yd*yd))`,
+                explanation: 'A TSPLIB exige distâncias inteiras. O uso exato da fórmula com <code>math.floor(0.5 + ...)</code> garante um arredondamento simétrico perfeito. Falhar nesta fórmula geraria custos totais divergentes do gabarito oficial da competição, invalidando a qualidade da rota.'
+            },
+            {
+                id: 'heuristica',
+                title: '3. Solução Inicial (Baseline)',
+                subtitle: 'Heurística Construtiva: Vizinho Mais Próximo',
+                requirement: 'A heurística do Vizinho Mais Próximo pode ser utilizada como baseline ou inicialização do método, mas não pode ser utilizada para constituir a solução final isolada.',
+                code: `while nao_visitadas:\n    for id_candidata in nao_visitadas:\n        distancia = calcular_distancia(cidade_atual, candidata)\n        if distancia < menor_distancia:\n            menor_distancia = distancia\n            cidade_mais_proxima = candidata`,
+                explanation: 'Esta função constrói o caminho do zero, adotando uma postura "Guloso" (escolhe sempre o benefício imediato). Respeitamos a regra do edital usando-a apenas como ponto de partida (baseline) para alimentar a Busca Local que virá a seguir.'
+            },
+            {
+                id: 'refinamento',
+                title: '4. Refinamento (Busca Local)',
+                subtitle: 'Algoritmo 2-Opt',
+                requirement: 'Caso o método implementado trate de heurísticas básicas, deve-se incorporar alguma forma adicional de processamento que vá além.',
+                code: `for i in range(1, len(melhor_tour) - 2):\n    for j in range(i + 1, len(melhor_tour)):\n        novo_tour = melhor_tour[:]\n        novo_tour[i:j] = melhor_tour[j-1:i-1:-1] # Inverte a sub-rota\n        if custo_da_rota(novo_tour) < melhor_custo:\n            melhor_custo = novo_custo`,
+                explanation: 'Nossa "forma adicional de processamento". O 2-Opt varre a rota inicial buscando cruzamentos (arestas que formam um X no plano 2D). Quando encontra, ele inverte a sub-rota afetada, desfazendo o nó e otimizando drasticamente o peso total do trajeto.'
+            },
+            {
+                id: 'competicao',
+                title: '5. Inteligência de Competição',
+                subtitle: 'Multi-start Dinâmico',
+                requirement: 'A avaliação será baseada no score calculado pela fórmula: score_i = 0,8 * Q_i + 0,2 * R_i, onde Q_i é a qualidade e R_i é o tempo.',
+                code: `if num_cidades <= 100:\n    passos_busca = num_cidades\nelif num_cidades <= 200:\n    passos_busca = min(50, num_cidades)\nelse:\n    passos_busca = min(10, num_cidades) \n\nfor i in range(passos_busca):\n    cidades_rotacionadas = cidades[i:] + cidades[:i]`,
+                explanation: 'A fórmula da competição pune duramente a lentidão. Para maximizar o Score, criamos um Multi-start escalonável: instâncias pequenas testam múltiplos inícios diferentes para buscar a perfeição em Q_i. Instâncias gigantes (500 nós) testam menos inícios para proteger a nota em R_i.'
+            },
+            {
+                id: 'saida',
+                title: '6. Validador de Saída (stdout)',
+                subtitle: 'Formato Estrito TSPLIB',
+                requirement: 'A saída deve conter obrigatoriamente: NAME, COMMENT, TYPE, DIMENSION, TOTAL WEIGHT, TOUR_SECTION e EOF... Mensagens adicionais não devem ser enviadas.',
+                code: `def imprimir_saida(nome, custo, tour):\n    print(f"NAME: {nome}")\n    print("COMMENT: Equipe - Vizinho + 2-Opt")\n    print("TYPE: TOUR")\n    print(f"DIMENSION: {len(tour)}")\n    print(f"TOTAL WEIGHT: {custo}")\n    print("TOUR_SECTION")\n    for cidade_id in tour:\n        print(cidade_id)\n    print("EOF")`,
+                explanation: 'O isolamento total das funções de <code>print()</code> garante que nenhum caractere extra vaze no terminal. Isso impede que o script de validação automática do SIGAA gere erro de parsing ao ler os arquivos .tour da equipe.'
+            },
+            {
+                id: 'medidor',
+                title: '7. Script de Avaliação Experimental',
+                subtitle: 'Automação de Benchmark',
+                requirement: 'O trabalho poderá conter: script utilizado para gerar dados e medir tempos... A análise experimental é parte essencial do trabalho.',
+                code: `tempo_inicio = time.perf_counter()\nsubprocess.run(\n    ['python', 'tsp_solver.py'],\n    stdin=entrada,\n    stdout=saida\n)\ntempo_fim = time.perf_counter()\nprint(f"Tempo: {tempo_fim - tempo_inicio}s")`,
+                explanation: 'O <code>medidor_tempo.py</code> cumpre a exigência experimental simulando o ambiente do professor. Usamos <code>time.perf_counter()</code> por oferecer a maior resolução de clock disponível no sistema, ideal para tabelar os milissegundos precisos que irão compor o relatório final.'
+            }
+        ];
+
+        const sidebar = document.getElementById('sidebar');
+        const contentArea = document.getElementById('content-area');
+
+        // Renderiza o menu lateral
+        function renderMenu() {
+            sidebar.innerHTML = `
+                <div class="sidebar-header">
+                    <h1>Arquitetura TSP</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Mapeamento de Requisitos</p>
+                </div>
+            `;
+            data.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `menu-item ${index === 0 ? 'active' : ''}`;
+                div.onclick = () => selectItem(item.id, div);
+                div.innerHTML = `
+                    <h3>${item.title}</h3>
+                    <p>${item.subtitle}</p>
+                `;
+                sidebar.appendChild(div);
+            });
+        }
+
+        // Renderiza o conteúdo principal
+        function renderContent(item) {
+            contentArea.innerHTML = `
+                <div class="card fade-in">
+                    <h2>${item.title}</h2>
+                    
+                    <div class="requirement-box">
+                        <strong>Exigência do PDF:</strong><br>
+                        "${item.requirement}"
+                    </div>
+
+                    <div class="explanation">
+                        <p><strong>Como resolvemos na arquitetura:</strong></p>
+                        <pre><code>${item.code}</code></pre>
+                        <p>${item.explanation}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Lida com o clique no menu
+        function selectItem(id, element) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            
+            const selectedData = data.find(item => item.id === id);
+            renderContent(selectedData);
+        }
+
+        // Inicialização
+        renderMenu();
+        renderContent(data[0]);
+    </script>
+    </body>
+</html>
