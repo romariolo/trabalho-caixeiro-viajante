@@ -86,7 +86,7 @@ def otimizacao_2opt(tour_inicial, cidades):
 def imprimir_saida(nome_instancia, custo, tour):
     """Imprime o resultado no formato exigido pela TSPLIB."""
     print(f"NAME: {nome_instancia}")
-    print("COMMENT: SEU NOME - Vizinho Mais Proximo + 2-Opt")
+    print("COMMENT: Hércules Bruno Ferreira Norte e Francisco Romário Rodrigues Lopes - Vizinho Mais Proximo + 2-Opt")
     print("TYPE: TOUR")
     print(f"DIMENSION: {len(tour)}")
     print(f"TOTAL WEIGHT: {custo}")
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             continue
             
         if lendo_coordenadas:
-            partes = Server_linha = linha.split()
+            partes = linha.split()
             if len(partes) >= 3:
                 cidades.append((int(partes[0]), float(partes[1]), float(partes[2])))
     
