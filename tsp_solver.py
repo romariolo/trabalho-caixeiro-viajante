@@ -86,7 +86,8 @@ def otimizacao_2opt(tour_inicial, cidades):
 def imprimir_saida(nome_instancia, custo, tour):
     """Imprime o resultado no formato exigido pela TSPLIB."""
     print(f"NAME: {nome_instancia}")
-    print("COMMENT: Hércules Bruno Ferreira Norte e Francisco Romário Rodrigues Lopes - Vizinho Mais Proximo + 2-Opt")
+    # Atualizado com o trio completo do relatório
+    print("COMMENT: Francisco Romário, Rodolfo Rodrigues e Hércules Bruno - Vizinho Mais Proximo + 2-Opt")
     print("TYPE: TOUR")
     print(f"DIMENSION: {len(tour)}")
     print(f"TOTAL WEIGHT: {custo}")
@@ -122,15 +123,15 @@ if __name__ == "__main__":
         num_cidades = len(cidades)
         cidades_mapa = {c[0]: c for c in cidades}
         
-        # DEFINIÇÃO DE ESTRATÉGIA POR ESCALA (Para garantir eficiência no tempo)
-        # Se a instância for pequena/média, testamos começar por várias cidades.
-        # Se for muito grande (perto de 500), reduzimos o número de partidas para não estourar o tempo.
-        if num_cidades <= 100:
+        # DEFINIÇÃO DE ESTRATÉGIA POR ESCALA (Ajuste Agressivo de Tempo para proteger o R_i)
+        if num_cidades <= 76:
             passos_busca = num_cidades
+        elif num_cidades <= 150:
+            passos_busca = 10
         elif num_cidades <= 200:
-            passos_busca = min(50, num_cidades)
+            passos_busca = 2  # Protege o tempo na kroA200
         else:
-            passos_busca = min(10, num_cidades) # Proteção para instâncias gigantes na competição
+            passos_busca = 1  # Instâncias gigantes (gil266) rodam apenas 1 vez!
             
         melhor_tour_global = []
         melhor_custo_global = float('inf')
